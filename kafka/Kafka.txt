@@ -82,3 +82,7 @@ Publisher App : https://github.com/ashokitschool/spring_boot_kafka_producer.git
 Subscriber App : https://github.com/ashokitschool/spring_boot_kafka_consumer.git
 
 ==================================================================================
+
+.\bin\windows\kafka-server-start.bat .\config\server.properties
+
+.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
