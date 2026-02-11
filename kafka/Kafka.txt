@@ -86,3 +86,47 @@ Subscriber App : https://github.com/ashokitschool/spring_boot_kafka_consumer.git
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 
 .\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+
+
+Event-Driven Architecture (EDA)
+
+Event-Driven Architecture is a software design pattern where systems communicate by producing and reacting to events.
+ex
+“Order Placed”, “Payment Completed”, “User Registered”, “Item Shipped”
+Instead of services calling each other directly, they emit events, and other services listen and react.
+
+🔹 Simple Real-World Example
+
+Imagine an e-commerce system:
+
+A user places an order.
+
+The system publishes an event:
+👉 OrderCreated
+
+Multiple services react independently:
+
+Payment Service processes payment
+
+Inventory Service reduces stock
+
+Email Service sends confirmation
+
+Shipping Service prepares delivery
+
+None of these services call each other directly.
+They only respond to the event.
+
+🔹 Core Components of EDA
+
+Event Producer
+Generates the event
+(e.g., Order Service)
+
+Event Broker (like Kafka)
+Carries the event
+(e.g., Kafka topic)
+
+Event Consumer
+Listens and reacts
+(e.g., Payment Service)
