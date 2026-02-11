@@ -1,0 +1,8 @@
+1)Rest Repositories  ==> without endpoints crud operations can be done
+
+@RepositoryRestResource
+public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Long>{
+
+}
+================
+================
