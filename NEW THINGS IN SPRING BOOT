@@ -1,8 +1,61 @@
+25 september
 1)Rest Repositories  ==> without endpoints crud operations can be done
 
 @RepositoryRestResource(collectionResourceRel = "product-category",path = "product-category")
 public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Long>{
 
+}
+
+@RepositoryRestResource(path = "products")
+public interface ProductRepository extends JpaRepository<Product, Long> {
+
+	
+	Page<Product> findByCategoryId(@Param("id") Long id,Pageable pageable);
+	
+	
+	Page<Product> findByNameContaining(@Param("name") String name,Pageable pageable);
+	
+}
+
+
+URL-5 : http://localhost:8080/api/product-category/1/products
+
+URL-6 : http://localhost:8080/api/products/search/findByCategoryId?id={1}
+
+URL-7 : http://localhost:8080/api/products/search/findByNameContaining?name={apple}
+
+=================================
+Step-8 : Expose Ids for entities
+==================================
+
+@Configuration
+public class MyDataRestConfig implements RepositoryRestConfigurer {
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Override
+    public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config, CorsRegistry cors) {
+        exposeIds(config);
+    }
+
+    private void exposeIds(RepositoryRestConfiguration config) {
+
+        // get all entity classes from the entity manager
+        Set<EntityType<?>> entities = entityManager.getMetamodel().getEntities();
+
+        // create an array for the entity types
+        List<Class> entityClasses = new ArrayList<>();
+
+        // get entity types for entities
+        for (EntityType tempEntityType : entities) {
+            entityClasses.add(tempEntityType.getJavaType());
+        }
+
+        // expose ids for domain types
+        Class[] domainTypes = entityClasses.toArray(new Class[0]);
+        config.exposeIdsFor(domainTypes);
+    }
 }
 
 ================
