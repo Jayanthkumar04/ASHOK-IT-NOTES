@@ -390,6 +390,28 @@ Step-7 : Implement Search Functionality
 
 Gopal : Build search box functionality
 
+<form class="form-header" onsubmit="return false;" method="GET">
+              <input class="au-input au-input-xl" type="text" name="search" placeholder="Search for data ..."
+                #searchInput (keyup)="doSearch(searchInput.value)" />
+              <button class="au-btn-submit" type="submit">
+                Search
+              </button>
+            </form>
+
+
+ doSearch(keyword:string)
+   {
+console.log("Searching for:", keyword);
+
+ if(keyword.trim() !== ''){
+  this.router.navigate([`search`,keyword])
+ }else {
+    this.router.navigate(['category', 1]);
+  }
+
+   }
+
+
 ======================================
 Step-8 : Product Details Master View
 ======================================
