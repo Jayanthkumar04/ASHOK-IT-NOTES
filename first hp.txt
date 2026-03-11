@@ -1,0 +1,119 @@
+1)User enables webservices using EWS or console
+
+2)Printer calls POST req to offramp service 
+
+3)the registration begins
+
+4)Generates Cloud id (22 char id)
+
+5)Generates printer email-id (claimid@hp.com)
+
+6)Generates claim code 
+
+7)This printer is send to cpgdb based on available shard
+
+8)After registration in response we get xmpp server ip to establish connection with cloud
+
+9)Printer connects to designated xmpp server , security checks and validation occur before tunnel/communication is established
+
+10)Onramp services fetches printer attributes and capabilities over xmpp.
+
+it is huge data collected from printer for future use
+
+
+it takes 1-5 minutes
+
+11)Fetched capabilities and attributes are updated under same cloud id in shard
+
+12)OFFRamp registration requests cloud welcome page service to generate info sheet(contains email,claim code)
+
+13)template data is converted to html
+
+Rendering service converts HTML to printable format
+
+Rendered content is stored and made available for printer to fetch
+
+14)worker notifies the printer via xmpp with an IPP print job, including content loc (offramp pull URL)
+
+15)Printer issues HTTP Get to offramp pull with the url
+
+  content is retrieved in chunked or streamed form
+
+  offramp pull resolves worker that hold rendered content and streams it back
+
+
+==========================
+==========================
+
+APIS
+
+
+1)before request reaches to printer several validations are performed
+
+configured in src/main/resource/applicationContext-security.xml file
+
+
+Following filters applied
+
+1)registrationBasicProcessingFilter
+2)registrationExceptionTranslationFilter
+3)registrationFilterSecurityInterceptor
+
+
+once all are done
+comes to api (name="/Printers#POST")
+
+it reaches PrintersResource class
+
+main entry for Printer Registration Api	
+
+The input from printer typically comes in XML format 
+
+           ->serial num  ->model num  ->additional printer specific details
+
+These values undergo validation: 1)serial num validation 2)Model number validation
+
+ 
+During registration xmpp channel is used to 
+  ->fetch printer capabilities  -> printer capabilities persisted in database
+
+all apis executed sequentially during this phase
+
+
+================
+INSTRUCTION PAGE
+================
+
+1)After registration, instruction page is called using API:
+/printers/{printerId}/PrintJobs/Instructions #post
+
+success or failure determines next steps:
+	success -> registration completed successfully
+	failure -> rollback occurs and registration is marked as failed
+
+=================
+Failure Handling and deregistration
+==================
+
+1)if any failure occurs 
+system triggers DEREGISTRATION /Printers/{printerId}/ #DELETE
+
+
+
+=============================
+Email Resource
+=============================
+
+Manages generation and retrival of printer-specific email addresses
+
+//Generates Email Address for Printer
+
+API NAME 
+
+/Printers/{printerId}/EmailAddress
+
+
+
+	
+
+
