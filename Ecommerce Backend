@@ -1,0 +1,577 @@
+
+======================
+eCommerce Application
+======================
+
+Project Architecture : https://www.youtube.com/watch?v=IbOMX4OYjSM
+
+Backend : SpringBoot + Data JPA + Data Rest + MySQL DB
+
+Frontend : Angular 17v
+
+====================
+Application Modules
+====================
+
+1) Products & Categories
+
+2) Cart
+
+3) Checkout
+
+4) Payment
+
+5) User Management
+
+6) Orders
+
+========================================================================================
+01-Assignment : DB Design
+========================================================================================
+
+=================
+Database Design
+=================
+
+1) product_category
+
+		category_id		PK
+		category_name
+
+2) product
+
+		product_id		PK
+		name
+		desc
+		title
+		unit_price
+		image_url
+		active
+		units_stock
+		date_created
+		last_updated		
+		category_id		FK
+
+
+3) 	Customer
+
+		customer_id  PK
+		name
+		email
+		pwd
+		phno
+
+4) shipping_address
+
+		addr_id		PK
+		house_num
+		street
+		city
+		state
+		zipcode
+		country		
+
+4) Order	
+
+		order_id       			PK
+		order_tracking_num
+		total_quantity
+		total_price
+		order_status
+		date_created
+		last_updated
+		razor_pay_payment_id	
+
+		customer_id		FK
+		addr_id			FK	
+
+
+5) Order_items
+		
+		order_item_id   PK
+		image_url
+		unit_price
+		quantity
+		product_id      FK
+		order_id        FK
+
+========================================================================================
+02-Assignment : Create Project + Create Entities with Association Mapping + Repositories
+========================================================================================
+
+
+===============================================================
+Step-1) Create Spring Boot Application with below starters
+===============================================================
+
+a) spring-boot-starter-data-jpa
+
+b) spring-boot-starter-data-rest
+
+c) spring-boot-devtools
+
+d) mysql-connector-j
+
+==================================
+Step-2) Create Entity Classes 
+==================================
+
+@Entity
+@Table(name="product_category")
+public class ProductCategory {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String categoryName;
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    private Set<Product> products;
+
+}
+
+@Entity
+@Table(name="product")
+public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    private String description;
+
+    private String title;
+
+    private BigDecimal unitPrice;
+
+    private String imageUrl;
+
+    private boolean active;
+
+    private int unitsInStock;
+
+    private Date dateCreated;
+
+    private Date lastUpdate;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id", nullable = false)
+    private ProductCategory category;
+
+}    
+
+
+
+=======================================
+Step-3) Create Repository Interfaces
+======================================
+
+@RepositoryRestResource(path = "products")
+public interface ProductRepository extends JpaRepository<Product, Long> {
+}
+
+@RepositoryRestResource(path = "product-category")
+public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Long> {
+}
+
+==========================================================
+Step-4) Configure data source properties in props file
+=========================================================
+
+spring.application.name=ecommerce_backend
+
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/ashokit_ecomm
+spring.datasource.username=root
+spring.datasource.password=root
+
+spring.jpa.hibernate.ddl-auto=update
+
+spring.jpa.show-sql=true
+
+spring.data.rest.base-path=/api
+
+==========================================================
+Step-5) Run the application and test tables creation
+=========================================================
+
+
+==========================================================
+Step-6) Insert data into db tables using sql queries
+==========================================================
+
+1) insert data into category table
+2) insert data into product table (for each category at least 5 products)
+
+=========================================================
+Step-7) Test api functionality using postman
+=========================================================
+
+Note: If we observe the response, the primary columns data will not come in response.
+
+
+=================================
+Step-8 : Expose Ids for entities
+==================================
+
+@Configuration
+public class MyDataRestConfig implements RepositoryRestConfigurer {
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Override
+    public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config, CorsRegistry cors) {
+        exposeIds(config);
+    }
+
+    private void exposeIds(RepositoryRestConfiguration config) {
+
+        // get all entity classes from the entity manager
+        Set<EntityType<?>> entities = entityManager.getMetamodel().getEntities();
+
+        // create an array for the entity types
+        List<Class> entityClasses = new ArrayList<>();
+
+        // get entity types for entities
+        for (EntityType tempEntityType : entities) {
+            entityClasses.add(tempEntityType.getJavaType());
+        }
+
+        // expose ids for domain types
+        Class[] domainTypes = entityClasses.toArray(new Class[0]);
+        config.exposeIdsFor(domainTypes);
+    }
+}
+
+=======================================================
+Step-9 : Write Custom Methods in ProductRepository
+======================================================
+
+@RepositoryRestResource(path = "products")
+public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    Page<Product> findByCategoryId(@Param("id") Long id, Pageable pageable);
+
+    Page<Product> findByNameContaining(@Param("name") String name, Pageable pageable);
+}
+
+Note: For the above 2 findBy methods implementation will be provided by data jpa in runtime.
+
+===========================================================
+Step-10 : Test backend api functionality with below URLS
+===========================================================
+
+URL-1 : http://localhost:8080/api/products
+
+URL-2 : http://localhost:8080/api/products/1
+
+URL-3 : http://localhost:8080/api/product-category
+
+URL-4 : http://localhost:8080/api/product-category/1
+
+URL-5 : http://localhost:8080/api/product-category/1/products
+
+URL-6 : http://localhost:8080/api/products/search/findByCategoryId?id={1}
+
+URL-7 : http://localhost:8080/api/products/search/findByNameContaining?name={apple}
+
+
+==============
+DB Queries
+==============
+
+INSERT INTO product_category(category_name) VALUES ('Laptops');
+INSERT INTO product_category(category_name) VALUES ('Mobiles');
+INSERT INTO product_category(category_name) VALUES ('Shirts');
+INSERT INTO product_category(category_name) VALUES ('Beauty');
+
+
+---------------------------------------------------------------------------------
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('DELL-LAPTOP-1000', 'DELL - Laptop', 'Processor: Intel Core i5-1235U 12th Generation (up to 4.40 GHz, 12MB 10 Cores)',
+'assets/images/products/laptops/dell-laptop-1000.png',1,100,19.99,1, NOW());
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('HP-LAPTOP-1001', 'HP - Laptop', 'Processor: Intel Core i5-1235U 12th Generation (up to 4.40 GHz, 12MB 10 Cores)',
+'assets/images/products/laptops/hp-laptop-1001.png',1,100,59.99,1, NOW());
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('ACER-LAPTOP-1002', 'ACER - Laptop', 'Acer Aspire Lite 12th Gen Intel Core i5-1235U Thin and Light Laptop ',
+'assets/images/products/laptops/acer-laptop-1002.png',1,100,49.99,1, NOW());
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('LENOVO-LAPTOP-1003', 'Lenovo ThinkPad E14', 'Lenovo ThinkPad E14 AMD Ryzen 5',
+'assets/images/products/laptops/lenovo-laptop-1003.png',1,100,45.00,1, NOW());
+
+---------------------------------------------------------------------------------------------------
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('Apple-IPhone-1000', 'Apple-Iphone', 'Apple iPhone 13 (128GB) - Green',
+'assets/images/products/mobiles/apple-mobile-1000.png',1,100,59,2, NOW());
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('RED-MI-1001', 'Redmi 13C', 'Redmi 13C (Stardust Black, 6GB RAM, 128GB Storage)',
+'assets/images/products/mobiles/redmi-mobile-1001.png',1,100,29,2, NOW());
+
+INSERT INTO ecomm.product (title, name, description, image_url, active, units_in_stock,unit_price, category_id, date_created)
+VALUES ('SAMSUNG-Galaxy-1002', 'Samsung Mobile', 'SAMSUNG Galaxy F14 5G 6GB RAM 128GB STORAGE',
+'assets/images/products/mobiles/samsung-mobile-1002.png',1,100,39,2, NOW());
+
+INSERT INTO ecomm.product (title, name, description, image_url, active, units_in_stock,unit_price, category_id, date_created)
+VALUES ('POCO C65', 'POCO C65', 'POCO C65 (Pastel Green 4GB RAM 128GB Storage)',
+'assets/images/products/mobiles/poco-mobile-1003.png',1,100,49,2, NOW());
+
+------------------------------------------------------------------------------------------------------------
+
+INSERT INTO product (title, name, description, image_url, active, units_in_stock,
+unit_price, category_id, date_created)
+VALUES ('Mens Cotton Shirt', 'Mens Cotton Shirt', 'Amazon Brand - Symbol Mens Cotton Shirt','assets/images/products/clothes/shirt-1000.png',1,100,5,3, NOW());
+
+---------------------------------------------------------------------------------------------------------------
+
+=====================================
+Problem with notification service
+======================================
+List<Order> orders = orderRepo.findOrdersForDeliveryToday(start, end, "PAID");
+        
+        for (Order order : orders) {
+
+            try {
+                String subject = "Out for Delivery 🚚";
+
+                String body = "Hi,\n\nYour order is out for delivery today.\n"
+                        + "Please be available to receive it before 9 PM.\n\n"
+                        + "Tracking Number: " + order.getOrderTrackingNum();
+
+                emailServiceImpl.sendOrderConfirmation(
+                        order.getEmail(),
+                        subject,
+                        body,
+                        null
+                );
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+===>if it is done in this way
+1)if one exception occures then remaining customers wont receive the notifications
+
+2)problem 2-> performance issue- there will be lot of network calls then for every order these call will happen
+then, it takes lot of time as there are lakhs of order every day to handle
+
+3)🚨 Key Problem (IMPORTANT)
+
+👉 @Scheduled runs on ONE thread by default
+
+So:
+
+While sending emails → scheduler is blocked
+Next scheduled job may get delayed
+
+
+🤔 Is multithreading the solution?
+
+✅ Yes — but NOT blindly
+
+If you just throw threads:
+
+DB connections can exhaust
+Email server may throttle
+App can crash under load
+
+
+@Async("emailExecutor")
+	public void sendOrderConfirmation(String toEmail,String subject,String body,File attachment) throws Exception
+	{
+		MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        helper.setTo(toEmail);
+        helper.setSubject(subject);
+        helper.setText(body);
+
+        if (attachment != null) {
+            helper.addAttachment(attachment.getName(), attachment);
+        }
+
+        mailSender.send(message);
+		
+	}
+
+
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+	
+	
+	@Bean(name="emailExecutor")
+	public Executor emailExecutor()
+	{
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		
+		executor.setCorePoolSize(5); //start threads
+		
+		executor.setMaxPoolSize(10); // max threads
+		
+		executor.setQueueCapacity(200);//queue before creating new threads
+		
+		executor.setThreadNamePrefix("Email-Thread-");
+	
+		executor.initialize();
+		
+		return executor;
+		
+		
+	}
+
+}
+
+
+@Scheduled(cron = "0 00 07 * * ?",zone = "Asia/Kolkata")
+	public void sendDeliveryReminder()
+	{
+		System.out.println("Running Delivery Reminder........");
+		
+		LocalDate today = LocalDate.now();
+		
+		LocalDateTime start = today.atStartOfDay(); // 00:00
+		
+        LocalDateTime end = today.atTime(23, 59, 59); // 23:59
+      
+        int page = 0,size=50;
+        
+        Page<Order> orderPage;
+        
+        do {
+         orderPage = orderRepo.findOrdersForDeliveryToday(start, end, "PAID",PageRequest.of(page, size));
+        
+        for (Order order : orderPage.getContent()) {
+
+            try {
+                String subject = "Out for Delivery 🚚";
+
+                String body = "Hi,\n\nYour order is out for delivery today.\n"
+                        + "Please be available to receive it before 9 PM.\n\n"
+                        + "Tracking Number: " + order.getOrderTrackingNum();
+
+                emailServiceImpl.sendOrderConfirmation(
+                        order.getEmail(),
+                        subject,
+                        body,
+                        null
+                );
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        }while(orderPage.hasNext());
+
+	}
+
+
+❓ Q1: Why did you use @Async in your scheduler?
+
+👉
+Answer:
+
+We used @Async to avoid blocking the scheduler thread while sending emails. Email sending is an I/O operation and can be slow, so by making it asynchronous, multiple emails can be processed in parallel without delaying scheduled jobs.
+
+❓ Q2: Why did you configure a custom ThreadPoolTaskExecutor?
+
+👉
+Answer:
+
+By default, Spring uses a SimpleAsyncTaskExecutor which creates unlimited threads and can lead to resource exhaustion. To control concurrency, we configured a ThreadPoolTaskExecutor with core pool size, max pool size, and queue capacity for efficient and safe parallel processing.
+
+❓ Q3: Explain corePoolSize, maxPoolSize, and queueCapacity.
+
+👉
+Answer:
+
+corePoolSize: Number of threads created initially to handle tasks
+queueCapacity: Tasks are queued when all core threads are busy
+maxPoolSize: Additional threads are created only when the queue is full
+
+Execution order:
+👉 core threads → queue → max threads → rejection
+
+❓ Q4: Why did you use pagination in scheduler?
+
+👉
+Answer:
+
+Fetching all records at once can cause memory issues and slow performance when the dataset grows. Pagination ensures we process data in smaller chunks, improving scalability and reducing memory usage.
+
+❓ Q5: What problem does this design solve?
+
+👉
+Answer:
+
+This design solves:
+
+Blocking scheduler threads
+Slow sequential email processing
+Memory issues due to large datasets
+
+By combining async processing and pagination, the system becomes scalable and efficient.
+
+❓ Q6: What are the limitations of this approach?
+
+👉
+Answer:
+
+No retry mechanism for failed emails
+Emails may be lost if the application crashes mid-processing
+No guaranteed delivery (unlike message queues)
+❓ Q7: How would you improve this further?
+
+👉
+Answer:
+
+Add retry mechanism for failed emails
+Store email status in DB (PENDING, SENT, FAILED)
+Use message queues like RabbitMQ or Kafka for reliability and scalability
+❓ Q8: Why not create threads manually?
+
+👉
+Answer:
+
+Manual thread management is error-prone and not integrated with Spring lifecycle. Using Spring’s ThreadPoolTaskExecutor provides better control, configurability, and integration with annotations like @Async.
+
+❓ Q9: What happens if too many tasks come?
+
+👉
+Answer:
+
+Tasks are first handled by core threads, then queued. If the queue is full, additional threads are created up to maxPoolSize. Beyond that, tasks are rejected, preventing system overload.
+
+❓ Q10: Is this suitable for high-scale systems?
+
+👉
+Answer:
+
+This approach is suitable for moderate-scale systems. For high-scale systems, we should use message queues to decouple processing and ensure reliability.
+
+🔥 One-Line Summary (VERY IMPORTANT)
+
+👉
+“We optimized scheduled email processing by using asynchronous execution with a controlled thread pool and pagination to ensure scalability, performance, and resource efficiency.”
+
+===========================================
+
+
+
+
