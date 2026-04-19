@@ -572,6 +572,174 @@ This approach is suitable for moderate-scale systems. For high-scale systems, we
 
 ===========================================
 
+======================
+INVOICE STORAGE (USE S3 BUCKET) 
+======================
+STORING IN LOCAL STORAGE IS NOT RECOMMENDED, SO GO FOR S3 BUCKET
+
+Create S3 Bucket
+
+Go to AWS Console:
+
+Service → S3
+Click Create Bucket
+Name: ecommerce-invoices-jayanth (must be unique)
+Region: same as your app (important)
+
+👉 Keep note of:
+
+Bucket name
+Region
+🔐 STEP 3: Get Credentials
+
+Go to:
+
+IAM → Users → Create user
+
+Give:
+
+Programmatic access
+Attach policy: AmazonS3FullAccess (for now)
+
+👉 You’ll get:
+
+Access Key
+Secret Key
+📦 STEP 4: Add Dependency
+If Maven:
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+    <version>2.25.0</version>
+</dependency>
+⚙️ STEP 5: Create S3 Config
+package com.org.jayanth.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+
+@Configuration
+public class S3Config {
+
+    @Bean
+    public S3Client s3Client() {
+
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(
+                "YOUR_ACCESS_KEY",
+                "YOUR_SECRET_KEY"
+        );
+
+        return S3Client.builder()
+                .region(Region.AP_SOUTH_1) // Mumbai
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .build();
+    }
+}
+📤 STEP 6: Create S3 Service
+package com.org.jayanth.service;
+
+import java.io.File;
+import java.nio.file.Files;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+@Service
+public class S3Service {
+
+    @Autowired
+    private S3Client s3Client;
+
+    private final String bucketName = "ecommerce-invoices-jayanth";
+
+    public String uploadFile(File file) throws Exception {
+
+        String key = "invoices/" + file.getName();
+
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        s3Client.putObject(request, file.toPath());
+
+        // Return file URL
+        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+    }
+}
+🔁 STEP 7: Modify Your Flow
+Replace this part:
+File invoice = invoiceService.generateInvoice(order);
+With:
+File invoice = invoiceService.generateInvoice(order);
+
+String fileUrl = s3Service.uploadFile(invoice);
+📧 STEP 8: Send URL Instead of File
+String body = "Hi,\n\nYour order is successfully placed.\n\n"
+        + "Order ID: " + order.getOrderId() + "\n"
+        + "Tracking Number: " + order.getOrderTrackingNum() + "\n"
+        + "Amount: ₹" + order.getTotalPrice() + "\n\n"
+        + "Download Invoice: " + fileUrl + "\n\n"
+        + "Thank you for shopping with us!";
+🧹 STEP 9: Delete Local File (IMPORTANT)
+invoice.delete();
+
+👉 Avoid filling server disk
+
+🔥 FINAL FLOW
+Order placed
+   ↓
+Generate invoice (PDF)
+   ↓
+Upload to S3
+   ↓
+Get URL
+   ↓
+Send email with link
+   ↓
+Delete local file
 
 
+to makes files public 
 
+Add Bucket Policy (VERY IMPORTANT)
+
+Go to:
+👉 Bucket → Permissions → Bucket Policy
+
+Add this:
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadAccess",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::ecommerce-jayanth-invoice/*"
+    }
+  ]
+}
+
+👉 This allows:
+
+Anyone → Read objects from your bucket
+📦 STEP 3: Check Object Upload (VERY IMPORTANT)
+
+By default, uploaded files are private
+
+👉 Fix in your upload code:
+
+PutObjectRequest request = PutObjectRequest.builder()
+        .bucket(bucketName)
+        .key(key)
+        .acl("public-read") // 🔥 IMPORTANT
+        .build();
